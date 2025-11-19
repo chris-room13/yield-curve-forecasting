@@ -1,3 +1,3 @@
 .venv
 /latex/thesis.tex
-yield-curve-forecasting.code-workspace
+*.code-workspace
