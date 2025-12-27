@@ -19,7 +19,12 @@
 }
 \usepackage{threeparttable}
 \usepackage{adjustbox}
-
+\usepackage{multirow}
+\usepackage{caption}
+\captionsetup{
+    justification=centering
+}
+\usepackage{float}
 
 % --- Line spacing ---
 \usepackage{setspace}
@@ -174,7 +179,7 @@ While these model remain the dominant benchmark, their linear and time-invariant
 
 Against this background, the central objective of this thesis is to assess whether selected machine-learning models can deliver systematically better yield-curve forecasts than classical econometric approaches when both are trained on the same information set. The first research question examines to what extent ridge regression and gradient boosting improve statistical forecast accuracy across maturities and horizons relative to established benchmarks such as the Dynamic-Nelson-Siegel model and the random walk. The second research question investigates whether any improvement in predictive accuracy translates into economic value, measured through the profitability of  a simple trading strategy and the risk reduction in a portfolio optimization problem. By jointly evaluating statistical performance and economic outcomes, the thesis aims to determine whether the additional modelling complexity of machine-learning methods is justified in practice.
 
-The thesis is structured as follows: in Chapter 2, an overview of related literature and relevant prior work is provided. A detailed descripted of the used data is presented in Chapter 3. Chapter 4 describes the Methodology, covering the different econometrical and machine-learning models as well as the statistical and economical evaluation design. Chapter 5 presents the results of the empirical analysis, evaluating the performance of the different models. Finally, in Chapter 6 the results of this thesis are discussed and conclusions are drawn.
+The thesis is structured as follows: in Chapter 2, an overview of related literature and relevant prior work is provided. A detailed descripted of the used data is presented in Chapter 3. Chapter 4 describes the Methodology, covering the different econometrical and machine-learning models as well as the statistical and economical evaluation design. Chapter 5 presents the results of the empirical analysis, evaluating the performance of the different models. In Chapter 6, a robustness check in form of a subsample analysis is conducted. Finally, in Chapter 7 the results of this thesis are discussed and conclusions are drawn.
 
 \chapter{Related Literature}
 Early work on term-structure modelling dates back to \textcite{durand1942basic}, who first estimated smooth yield-curves using polynomial functions. A major breakthrough came with the introduction of the Nelson--Siegel model \parencite{nelson1987parsimonious}, which represents the yield-curve using three latent factors interpreted as level, slope and curvature. \textcite{diebold2006forecasting} extended this framework into a dynamic model by modelling the factors with autoregressive processes, establishing the Dynamic Nelson--Siegel (DNS) model. Various extensions have been proposed to improve the DNS model, including the incorporation of macroeconomics variables or regime dynamics \parencite{diebold2006macroeconomy}, yet the DNS model remains the dominant benchmark for yield-curve forecasting due to its simplicity, interpretability and strong empirical performance \parencite[pp. 1-2]{swanson2018predicting}.
@@ -184,7 +189,16 @@ Complementing these econometric models, a growing amount of literature applies m
 In summary, prior research provided strong evidence that both econometric and machine-learning models can extract useful information for yield-curve forecasting. However, existing studies differ substantially in terms of data, sample periods, forecasting horizons, and evaluation, making a direct comparision across methods difficult. This paper adds to the existing literature in two important aspects. First, by providing a consistent and reproducable forecasting framework using daily U.S. Treasury yields from 2009-2025 and evaluating both econometric and machine-learning models. Second, by not only assessing the statistical accuracy but also the economic value through trading and risk-reduction simulations.
 
 \chapter{Data}
-\begin{table}[h!]
+
+This chapter provides a brief description of the data used in the empirical analysis. First, the set of U.S. Treasury yield data is introduced and its descriptive statistics are presented. Then, the relevant macroeconomic context during the sample period is discussed to provide background for a better understanding of the evaluation results.
+
+\section{Descriptive Statistics}
+
+The empirical analysis in this thesis uses daily U.S. Treasury constant-maturity yields from January 2, 2009 to November 25, 2025. Specifically, the 1-, 2-, 5-, and 10-year maturities (DGS1, DGS2, DGS5, DGS10) are obtained from the Federal Reserve Bank of St. Louis (FRED)\footnote{\url{https://fred.stlouisfed.org/}}. In total, the dataset contains 16.908 observations (4.227 per maturity). Given the short horizons of our forecasting task and following \textcite{nunes2019comparison} and \textcite{das2025yieldcurve} daily constant-maturity yields are chosen rather than the otherwise often chosen monthly constant-maturity yields. The sample begins in 2009 to focus on the post-crisis monetary regime and exlcude extreme distortions of the 2008 financial crisis. The dataset provides a clean and high-quality basis for comparing econometric and machine-learning models for yield-curve forecasting. A plot and descriptive statistics of the yield data can be found in Table 3.1 and Figure 3.1. Throughout this thesis, the terms yield, interest rate, and Treasury yield are used interchangeably to refer to continuously observed constant-maturity U.S. Treasury rates, while yield curve and term structure denote the cross-sectional relationship between yields and maturities at a given point in time.
+
+Based on the plot and summary statistics, several key characteristics of the yield curve can be observed. First, yields exhibit an upward-sloping structure, with longer-maturity bonds offering higher yields than shorter-maturity bonds on average. Second, longer-maturity yields tend to be less volatile than shorter-maturity yields, as indicated by the decreasing standard deviations reported in Table~3.1. This is consistent with the stylized facts about the yield curve as described by \textcite[p. 343]{diebold2006forecasting}.
+
+\begin{table}[H]
 \centering
 \caption{Descriptive Statistics of U.S. Treasury Yields (2009--2025) (Source: Own representation)}
 \label{tab:desc_stats}
@@ -208,66 +222,67 @@ Maturity & Mean & Median & Std.\,dev. & Min & Max & Skew & Kurt \\
 \small
 This table reports the mean, median, standard deviation, minimum, maximum, skewness, and kurtosis of daily U.S. Treasury yields for the 1-year, 2-year, 5-year, and 10-year maturities. 
 \end{minipage}
-
 \end{table}
 
-\begin{figure}[h!]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=1\linewidth]{yields_viz.png}
-    \caption{U.S. Treasury Yield Curve (2009--2025) (Source: Own representation)}
+    \includegraphics[width=1\linewidth]{data_yield_curve.png}
+    \caption[
+    U.S. Treasury yields for the 2-, 5-, and 10-year maturities (2009–2025)
+    ]{
+    U.S. Treasury yields for the 2-, 5-, and 10-year maturities (2009–2025).\\
+    (Source: Own representation)
+    }
     \label{fig:yieldcurve}
     \vspace{0.5em}
 \end{figure}
 
-The empirical analysis in this thesis uses daily U.S. Treasury constant-maturity yields from January 2, 2009 to November 25, 2025. Specifically, the 1-, 2-, 5-, and 10-year maturities (DGS1, DGS2, DGS5, DGS10) are obtained from the Federal Reserve Bank of St. Louis (FRED)\footnote{\url{https://fred.stlouisfed.org/}}. In total, the dataset contains 16.908 observations (4.227 per maturity). Given the short horizons of our forecasting task and following \textcite{nunes2019comparison} and \textcite{das2025yieldcurve} daily constant-maturity yields are chosen rather than the otherwise often chosen monthly constant-maturity yields. The sample begins in 2009 to focus on the post-crisis monetary regime and exlcude extreme distortions of the 2008 financial crisis. The dataset provides a clean and high-quality basis for comparing econometric and machine-learning models for yield-curve forecasting. A plot and descriptive statistics of the yield data can be found in Table 3.1 and Figure 3.1. 
+\section{Macroeconomic context}
 
-Based on the plot and summary statistics, several key characteristics of the yield curve can be observed. First, yields exhibit an upward-sloping structure, with longer-maturity bonds offering higher yields than shorter-maturity bonds on average. Second, longer-maturity yields tend to be less volatile than shorter-maturity yields, as indicated by the decreasing standard deviations reported in Table~3.1. This is consistent with the stylized facts about the yield curve as described by \textcite[p. 343]{diebold2006forecasting}.
+The sample period spans several specific monetary policy regimes that are relevant for the interpretation of the forecasting results. Following the 2008 global financial crisis, U.S. Treasury yields remained low throughout much of the 2010s. During this period volatility was relatively low and yield movements were smooth. Between 2016 and 2019, the Federal Reserve gradually increased interest rates, leading to a modest upward trend in yields. In early 2020, yields collapsed abruptly across the entire maturity spectrum as the beginning of the COVID-19 pandemic caused a severe economic shock and an aggressive policy response. Rapid rate cuts and large-scale asset purchases by the Federal Reserve pushed yields to historic lows at the beginning of 2021. Starting in 2022, U.S. Treasury yields increased sharply following restrictive monetary policy actions to fight high inflation. This period was characterized by visibly high volatility, yield curve inversions and significant uncertainty. The existence of these distinct regimes within the data set provides a robust environment to evaluate the performance of our forecasting models across different market conditions.
 
 \chapter{Methodology}
-This chapter describes the methodological framework used to evaluate the forecasting performance of econometric and machine learning models for U.S. Treasury yields. The analysis is structured around a common forecasting task that defines the prediction horizons, the construction of the training and testing samples, and the data used as inputs. We then outline all econometric and machine learning models included in the comparison and detail the procedure used to generate out-of-sample forecasts. Finally we present the statistical evaluation metrics and the economic value tests that assess the practical relevance of the forecasts.
-
-
+This chapter provides a detailed description of the methodological framework used in this thesis. First, we introduce the forecasting task and the process of generating out-of-sample predictions. Then, the econometric benchmark models, namely the Random Walk and Dynamic Nelson--Siegel model, are presented, including a brief description of their specification. Next, the machine-learning models, namely Ridge Regression and XGBoost, are described, including the construction of input features and model details. Finally, the evaluation metrics used to assess both statistical forecast accuracy and economic value are introduced, providing the basis for addressing the research questions of this thesis.
 \section{Forecasting Task}
-The objective of this thesis is to evaluate the ability of econometric and machine learning models to forecast U.S.\ Treasury yields at different maturities. Let $y_{t}^{(m)}$ denote the yield at time $t$ with maturity $m \in \{2,5,10\}$. For each model we generate out-of-sample forecasts at horizons $h \in \{1,5,10,30\}$ business days ahead. Formally, at each time $t$ the goal is to produce a forecast
+The thesis is structured around a common forecasting task, concerning the U.S. Treasury yields at different maturities and horizons. Let $y_{t}^{(\tau)}$ denote the yield at time $t$ with maturity $\tau \in \{2,5,10\}$. The 1-year maturity rate is solely used as the risk-free rate in the analysis and is therefore no forecasting target. For each model we generate out-of-sample forecasts at horizons $h \in \{1,5,10,30\}$ business days ahead. Formally, at each time $t$ the goal is to produce a forecast
 \[
-\hat{y}_{t+h}^{(m)} = \mathcal{F}_{t}^{(m)}(h),
+\hat{y}^{(\tau)}_{t+h\mid t} = \mathcal{F}_{t}^{(\tau)}(h),
 \]
-where $\mathcal{F}_{t}^{(m)}(h)$ denotes the model specific forecast operator that is based only on information available up to time $t$.
+where the notation $t+h \mid t$ denotes a forecast made at time $t$ for the yield at time $t+h$. $\mathcal{F}_{t}^{(\tau)}(h)$ denotes the model specific forecast operator that is based on the information set $\mathcal{F}_{t}$ available at time $t$.
 
-While the RW and DNS modes directly forecast yield levels, the machine-learning models forecast yield changes over the prediction horizon and then reconstruct the yield level using the last observed yield. 
+While the RW and DNS models directly forecast yield levels, the machine-learning models forecast yield changes over the prediction horizon and then reconstruct the yield level using the last observed yield.
 \[
-\hat{y}^{(m)}_{t+h} = y^{(m)}_{t} + \widehat{\Delta y}^{(m)}_{t+h}.
+\hat{y}^{(\tau)}_{t+h\mid t} = y^{(\tau)}_{t} + \widehat{\Delta y}^{(\tau)}_{t+h\mid t}.
 \]
+This transformation is motivated by standard time-series theory that recommends taking differences of persistent series to obtain more stable series for modelling \parencite[Chapter 15]{hamilton1994}.
 
-The yield data span the period from 2 January 2009 to 25 November 2025. The expanding window forecasting scheme uses a fixed initial estimation sample from 2 January 2009 to 31 December 2018, which provides $2.501$ daily observations. Out-of-sample forecasts are then generated from 2 January 2019 to 25 November 2025, which results in $1.726$ daily observations in the evaluation period. At each forecast origin $t$ in the test sample the model is re-estimated on all observations from 2 January 2009 up to $t$, after which a forecast for $t+h$ is produced.
+Moving along the OOS period, we employ an expanding window forecasting scheme because recent work on yield curve forecasting finds that ensemble methods like XGBoost achieve a better performance using this approach \parencite[p.~5]{das2025yieldcurve}.
+The expanding window uses a fixed initial training sample from 2 January 2009 to 31 December 2018, which provides $2.501$ daily observations per maturity. Out-of-sample forecasts are then generated from 2 January 2019 to 25 November 2025, which results in $1.726$ daily observations per maturity in the evaluation period. At each forecast origin $t$ in the test sample the model is re-estimated on all observations from 2 January 2009 up to $t$, after which a forecast for $t+h$ is produced.
 
-We employ an expanding window rather than a sliding window because recent work on yield curve forecasting with machine learning models finds that ensemble methods like XGBoost achieve a better performance using this approach \parencite[p.~5]{das2025yieldcurve}. In our design all models, that is the Random Walk benchmark, the DNS model, Ridge regression and XGBoost, face the same forecasting task with the same horizons and the same expanding window scheme. This ensures a fair comparison of statistical accuracy and economic value across methods.
 \section{Econometric Models}
 This section introduces the econometric benchmark models used for forecasting the yield 
 curve. First, the Random Walk model is presented as a minimal-assumption benchmark commonly used 
 in the yield-curve literature. Then the Dynamic Nelson--Siegel model is described, 
-including its cross-sectional representation, economic interpretation and dynamic factor 
-evolution.
-\subsection{Random Walk (RW)}
-The random walk (RW) model serves as the simplest and most widely used benchmark in the yield curve forecasting literature. It assumes that the best forecast of a future yield is the most recent observed yield. Let $y^{(m)}_{t}$ denote the yield at time $t$ for maturity $m \in \{2,5,10\}$. The RW model produces an $h$-step-ahead forecast according to
+including its specification and economic interpretation.
+\subsection{Random Walk}
+The random walk (RW) model serves as the simplest and most widely used benchmark in the yield curve forecasting literature. It assumes that the best forecast of a future yield is the most recent observed yield. Let $y^{(\tau)}_{t}$ denote the yield at time $t$ for maturity $\tau \in \{2,5,10\}$. The RW model produces an $h$-step-ahead forecast according to
 \begin{equation}
-\hat{y}^{(m)}_{t+h \mid t} = y^{(m)}_{t},
+\hat{y}^{(\tau)}_{t+h \mid t} = y^{(\tau)}_{t}
 \end{equation}
-where the notation $t+h \mid t$ denotes a forecast made at time $t$ for the yield at time $t+h$.
 
 The RW model implies that yields follow a martingale difference process, meaning that future changes in yields are unpredictable given all information available at time $t$. Formally,
 \begin{equation*}
-\mathbb{E}\left( y^{(m)}_{t+1} - y^{(m)}_{t} \,\middle|\, \mathcal{F}_{t} \right) = 0,
+\mathbb{E}\left( y^{(\tau)}_{t+1} - y^{(\tau)}_{t} \,\middle|\, \mathcal{F}_{t} \right) = 0,
 \end{equation*}
-where $\mathcal{F}_{t}$ denotes the information set at time $t$. Thus the model contains no parameters and requires no estimation.
+Thus the model contains no parameters and requires no estimation.
 
-Despite its simplicity the RW model remains a challenging benchmark for forecasting interest rates. Empirical studies show that many econometric and machine learning models struggle to outperform a RW, particularly at short horizons where yields exhibit strong persistence. \textcite[p. 1]{swanson2018predicting} further document that after 2010 only a small number of forecasting models consistently "beat" a RW benchmark. The RW therefore provides a stringent baseline against which the incremental value of more complex models can be evaluated.
+Despite its simplicity, the RW model remains a challenging benchmark for forecasting interest rates. Empirical studies such as \textcite[p. 2035]{CarrieroKapetaniosMarcellino2012} show that only very few models outperform the RW in terms of forecast accuracy. \textcite[p. 1]{swanson2018predicting} further document that after 2010 only a small number of forecasting models consistently "beat" a RW benchmark. The RW therefore provides a solid baseline against which the incremental value of more complex models can be evaluated.
 
 
-\subsection{Dynmaic Nelson--Siegel (DNS)}
+\subsection{Dynamic Nelson--Siegel}
 The Dynamic Nelson--Siegel (DNS) model combines the cross-sectional yield-curve representation of \textcite{nelson1987parsimonious} with the dynamic factor structure introduced by \textcite{diebold2006forecasting}. Let $y_{t}(\tau)$ denote the U.S. Treasury yield at time $t$ and maturity $\tau$. The Nelson–Siegel curve describes the shape of the yield curve at each point in time as
 \begin{equation}
-y_{t}(\tau)
+y_{t}^{(\tau)}
 = \beta_{1,t}
 + \beta_{2,t} \left( \frac{1 - e^{-\lambda_{t} \tau}}{\lambda_{t} \tau} \right)
 + \beta_{3,t} \left( \frac{1 - e^{-\lambda_{t} \tau}}{\lambda_{t} \tau} - e^{-\lambda_{t} \tau} \right),
@@ -275,7 +290,7 @@ y_{t}(\tau)
 \end{equation}
 where $\beta_{1,t}$, $\beta_{2,t}$, and $\beta_{3,t}$ are time-varying factors and $\lambda_{t}>0$ controls how quickly the factor loadings decline with maturity.
 
-The three DNS factors have a clear economic interpretation \parencite[pp. 340-343]{diebold2006forecasting}. The first factor $\beta_{1,t}$ affects all maturities equally and reflects the general level of interest rates. The second factor $\beta_{2,t}$ loads more strongly on short maturities and captures the slope of the yield curve. The third factor $\beta_{3,t}$ loads on medium maturities and captures curvature. These three features—level, slope and curvature—summarise almost all of the shape variation typically observed in government bond markets such as upward sloping, downward sloping, humped, and S-shaped. Because of this parsimony the model has become a standard tool in central banks, asset management and academic work.
+The three DNS factors have a clear economic interpretation \parencite[pp. 340-343]{diebold2006forecasting}. The first factor $\beta_{1,t}$ affects all maturities equally and reflects the general level of interest rates. The second factor $\beta_{2,t}$ loads more strongly on short maturities and captures the slope of the yield curve. The third factor $\beta_{3,t}$ loads on medium maturities and captures curvature. These three features summarise almost all of the shape variation typically observed in government bond markets such as upward sloping, downward sloping, humped, and S-shaped \parencite[p. 347]{diebold2006forecasting}. Because of this parsimony the DNS model is the dominant method for yield-curve forecasting at many central banks \parencite[p. 5]{bis2005zerocoupon}.
 
 Following \textcite{diebold2006forecasting} we treat the factors as latent variables that evolve smoothly over time. Let
 \[
@@ -293,121 +308,133 @@ The factors follow a first-order vector autoregression,
 = \boldsymbol{\mu} + A \boldsymbol{\beta}_{t-1} + \boldsymbol{\eta}_{t},
 \label{eq:dns_var}
 \end{equation}
-where $\boldsymbol{\mu}$ is a vector of intercepts, $A$ is a $3 \times 3$ coefficient matrix and $\boldsymbol{\eta}_{t}$ is a disturbance term. This specification captures the persistence commonly observed in interest-rate movements. In practice the VAR(1) structure is simple, transparent and widely used in empirical term-structure modelling.
+where $\boldsymbol{\mu}$ is a vector of intercepts, $A$ is a $3 \times 3$ coefficient matrix and $\boldsymbol{\eta}_{t}$ is a disturbance term. This specification captures the persistence commonly observed in interest-rate movements \parencite[p. 343-347]{diebold2006forecasting}.
 
-In this thesis we only observe yields at the maturities $\tau \in \{2,5,10\}$ years. For each day $t$ we estimate the factors $\beta_{1,t}$, $\beta_{2,t}$ and $\beta_{3,t}$ by fitting equation~\eqref{eq:ns_curve} to the observed yields using ordinary least squares. This yields a time series of estimated factor vectors $\hat{\boldsymbol{\beta}}_{t}$, from which the VAR system in equation~\eqref{eq:dns_var} is estimated. The estimated VAR then produces $h$-step-ahead forecasts of the factors,
+For each day $t$ we estimate the factors $\beta_{1,t}$, $\beta_{2,t}$ and $\beta_{3,t}$ by fitting equation~\eqref{eq:ns_curve} to the observed yields using ordinary least squares. This yields a time series of estimated factor vectors $\hat{\boldsymbol{\beta}}_{t}$, from which the VAR system in equation~\eqref{eq:dns_var} is estimated. The estimated VAR then produces $h$-step-ahead forecasts of the factors,
 \begin{equation}
 \hat{\boldsymbol{\beta}}_{t+h \mid t}
 = \hat{\boldsymbol{\mu}} + \hat{A} \hat{\boldsymbol{\beta}}_{t+h-1 \mid t},
 \end{equation}
-using the current factor estimates as a starting point. The forecasted factors are then mapped into yield forecasts through the Nelson--Siegel loadings in equation~\eqref{eq:ns_curve}.
+using the current factor estimates as a starting point. The forecasted factors are then translated into yield forecasts through the Nelson--Siegel model in equation~\eqref{eq:ns_curve}.
 
-A key choice concerns the parameter $\lambda_{t}$, which determines where the curvature factor peaks. Following \textcite[p.~347]{diebold2006forecasting}'s recommendation we set $\lambda_{t}=0.0609$ for all $t$, which places the curvature peak at roughly 30 months. With $\lambda_{t}$ fixed the DNS model remains easy to interpret while retaining strong empirical forecasting performance, making it an appropriate econometric benchmark for this thesis.
+A key choice concerns the parameter $\lambda_{t}$, which determines where the curvature factor peaks. Following \textcite[p.~347]{diebold2006forecasting}'s recommendation we set $\lambda_{t}=0.0609$ for all $t$, which places the curvature peak at roughly 30 months.
+
 \section{Machine-Learning Models}
 In this section the machine-learning models used for yield-curve forecasting are described. 
 First, the feature selection and the construction of the input information set are outlined. 
-Then the two forecasting methods, Ridge Regression and Gradient Boosted Trees (XGBoost), 
+Then the two forecasting methods, Ridge Regression and Gradient Boosted Trees, 
 are presented, including model specification, regularisation and their application in the forecasting task.
+
 \subsection{Input Features}
-The machine-learning models use only information contained in the yield curve itself. 
-For each forecast date, the input features consist of the most recent $L$ daily 
-observations of all available maturities. Let 
-$\{\tau_1, \ldots, \tau_M\}$ denote the set of maturities in the dataset. 
-The feature vector for date $t$ is constructed by stacking the lagged yields of each 
-maturity,
+
+The machine-learning models rely exclusively on information contained in the yield curve itself.
+For each forecast date $t$, the input features consist of lagged observations of yield levels as well as simple transformations that summarize the cross-sectional shape of the yield curve.
+
+Let $\{\tau_1, \ldots, \tau_M\}$ denote the set of maturities available in the dataset.
+For a given lag length $p$, the baseline feature vector includes the most recent $p$ daily observations of each maturity,
 \[
-\mathbf{x}_t = \left( 
-y_{t}^{(\tau_1)}, y_{t-1}^{(\tau_1)}, \ldots, y_{t-L+1}^{(\tau_1)},\;
+\mathbf{x}_t^{\text{levels}} = \left(
+y_{t}^{(\tau_1)}, y_{t-1}^{(\tau_1)}, \ldots, y_{t-p+1}^{(\tau_1)},\;
 \ldots,\;
-y_{t}^{(\tau_M)}, y_{t-1}^{(\tau_M)}, \ldots, y_{t-L+1}^{(\tau_M)}
+y_{t}^{(\tau_M)}, y_{t-1}^{(\tau_M)}, \ldots, y_{t-p+1}^{(\tau_M)}
 \right).
 \]
-This structure enables the models to learn from the joint dynamics of the entire 
-yield curve, capturing movements in level, slope and curvature.
 
-Although previous research has shown that including macroeconomic variables can 
-improve predictive accuracy \parencite[p.~16]{diebold2006macroeconomy} such extensions would make the comparison with the econometric benchmarks less 
-transparent. Therefore, the machine-learning models rely exclusively on lagged 
-yields to ensure a clean and consistent comparison.
+In addition to yield levels, we augment the feature set with three linear combinations of yields that aim capture the shape of the yield curve. These transformations are designed to mimic \textcite[p. 341-342]{diebold2006forecasting}, while making use of our limited set of observed maturities.
+Specifically, two slope measures and one curvature measure are included,
+\[
+\text{spread}_{5,2,t} = y_t^{(5)} - y_t^{(2)}, \qquad
+\text{spread}_{10,2,t} = y_t^{(10)} - y_t^{(2)}, \qquad
+\text{curv}_{5,t} = 2y_t^{(5)} - y_t^{(2)} - y_t^{(10)}.
+\]
+
+The final feature vector is constructed by stacking the lagged values of both yield levels and the derived slope and curvature measures,
+\[
+\mathbf{x}_t =
+\bigl(
+\mathbf{x}_t^{\text{levels}},\;
+\text{spread}_{5,2,t}, \ldots, \text{spread}_{5,2,t-p+1},\;
+\text{spread}_{10,2,t}, \ldots, \text{spread}_{10,2,t-p+1},\;
+\text{curv}_{5,t}, \ldots, \text{curv}_{5,t-p+1}
+\bigr).
+\]
+
+This representation allows the machine-learning models to exploit both the time-series dynamics of individual yields and economically meaningful summaries of the yield curve’s cross-sectional shape.
+
+Although previous research has shown that incorporating macroeconomic variables can improve predictive accuracy \parencite[p.~16]{diebold2006macroeconomy}, such extensions would complicate the comparison with econometric benchmark models.
+Therefore, the machine-learning models are restricted to yield-curve information only, ensuring a clean and transparent comparison across modeling approaches.
 
 
 \subsection{Ridge Regression}
 
-Ridge regression is a regularised version of ordinary least squares (OLS) that is well suited for forecasting problems with multicollinearity or noisy predictors \parencite[pp. 55-56]{hoerl1970ridge}. This makes it a natural candidate for yield-curve forecasting, where lagged yields across maturities tend to be highly correlated.
+Ridge regression is a regularized extension of ordinary least squares (OLS) that is designed to improve predictive performance in settings with many potentially redundant or noisy predictors \parencite[pp.~55--56]{hoerl1970ridge}. This situation arises in yield-curve forecasting, where predictors are constructed from multiple maturities and their lags, which are known to share strong common variation driven by a small number of underlying factors \parencite{litterman1991common}.
 
-Let $y_{t+h}$ denote the yield to be forecast $h$ days ahead and let $\mathbf{x}_{t}$ be the vector of predictors observed at time $t$. OLS estimates the coefficient vector $\boldsymbol{\beta}$ by minimising the sum of squared residuals,
+
+Ordinary least squares estimates the coefficient vector $\boldsymbol{\beta}$ by minimising the sum of squared residuals,
 \[
 \hat{\boldsymbol{\beta}}_{\mathrm{OLS}}
 = \arg\min_{\boldsymbol{\beta}}
-\sum_{t=1}^{T} (y_{t+h} - \mathbf{x}_{t}^{\top}\boldsymbol{\beta})^{2}.
+\sum_{t=1}^{T}
+\bigl(
+y_{t+h}^{(\tau)} - \mathbf{x}_{t}^{\top}\boldsymbol{\beta}
+\bigr)^{2}.
 \]
 
-Ridge regression modifies this objective by adding a penalty on the size of the coefficient vector,
-\[
+Ridge regression modifies this objective by adding a penalty term on the magnitude of the coefficient vector,
+
+\begin{equation}
 \hat{\boldsymbol{\beta}}_{\mathrm{ridge}}
 = \arg\min_{\boldsymbol{\beta}}
 \left[
-\sum_{t=1}^{T} (y_{t+h} - \mathbf{x}_{t}^{\top}\boldsymbol{\beta})^{2}
-+ \lambda \lVert \boldsymbol{\beta} \rVert^{2}
+\sum_{t=1}^{T}
+\bigl(
+y_{t+h}^{(\tau)} - \mathbf{x}_{t}^{\top}\boldsymbol{\beta}
+\bigr)^{2}
++ \alpha \lVert \boldsymbol{\beta} \rVert^{2}
 \right],
-\]
-where $\lambda \ge 0$ determines the strength of the regularisation. For $\lambda = 0$ the estimator reduces to OLS, whereas larger values of $\lambda$ shrink the coefficients more strongly.
+\label{eq:ridge}
+\end{equation}
 
-The closed-form solution is
-\[
-\hat{\boldsymbol{\beta}}_{\mathrm{ridge}}
-= (X^{\top}X + \lambda I)^{-1} X^{\top}y,
-\]
-where $X$ stacks the predictor vectors and $I$ is the identity matrix.
+where $\alpha \ge 0$ controls the strength of the regularisation. For $\alpha = 0$, the estimator reduces to OLS, while larger values of $\alpha$ increasingly shrink coefficients toward zero.
+From an intuitive perspective, ridge regression discourages large and unstable coefficient estimates by penalizing large coefficient magnitudes.
 
-The penalty stabilises the inversion of $X^{\top}X$, which is particularly useful in financial time series because yields at different maturities are strongly correlated. Ridge regression therefore helps reduce forecast variance and often improves out-of-sample accuracy. In this thesis ridge regression serves as a regularised linear benchmark model. It remains easy to interpret and provides a stable reference point before evaluating more flexible machine-learning methods such as tree-based models.
+Ridge regression was selected as one of the machine-learning models because it preserves the interpretability of linear forecasting approaches while providing a mechanism to control overfitting. Therefore, it acts as a good middle ground between the econometric models and the more complex nonlinear machine-learning method that follows.
 
+\subsection{Gradient Boosted Trees}
+Extreme Gradient Boosting (XGBoost) is a tree-based ensemble learning method widely used in regression and forecasting applications due to its strong predictive performance and flexibility \parencite{chen2016xgboost}. In contrast to linear models, XGBoost is capable of capturing nonlinear relationships and interaction effects among predictors because of its tree-based structure.
 
-\subsection{Gradient Boosted Trees (XGBoost)}
-While ridge regression provides a regularised linear benchmark, more flexible
-machine-learning methods may be able to capture nonlinear relationships in yield
-movements. To examine this, the second forecasting model in this thesis is Extreme
-Gradient Boosting (XGBoost), a tree-based ensemble learning method widely used in
-regression and forecasting applications \parencite{chen2016xgboost}.
+XGBoost builds on regression trees as base learners. A single regression tree partitions the predictor space into separate regions using a binary splitting rules of the form $x_j < c$. In each of the seperated regions, the model assigns a constant prediction to all observations. A simplified example of such a tree structure is illustrated in Figure~\ref{fig:regression_tree_example}. While individual trees are typically weak predictors, they can be combined to form a powerful forecasting model, a concept also knows as "wisdom of the crowd".
 
-XGBoost relies on decision trees as base learners. A regression tree iteratively
-partitions the predictor space into regions using binary splitting rules (e.g.\ $x_j < c$). 
-Each terminal region outputs a constant prediction for all observations assigned to it. A simplified
-example of such a tree structure is shown in Figure~\ref{fig:regression_tree_example}.
-
-
-\begin{figure}[h!]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\textwidth]{regression_tree_example.png}
-    \caption{Example of a regression tree (Source: Own representation)}
+    \caption[
+    Example of a regression tree
+    ]{
+    Example of a regression tree.\\
+    (Source: Own representation)
+    }
     \label{fig:regression_tree_example}
 \end{figure}
 
-Instead of fitting just a single tree, XGBoost builds a sequence of trees. Each new
-tree is trained to improve the residual errors of the previous model. If
-$F_{m-1}(\mathbf{x}_t)$ denotes the model after $m{-}1$ trees, the update step can
-be written as:
-
+Instead of fitting just a single tree, XGBoost constructs an ensemble of trees in a sequential manner. Each new tree is trained to improve upon the residual errors of the existing model. Let $F_{m-1}(\mathbf{x}_t)$ denote the ensemble after $m-1$ trees. The update step can be written as
 \[
 F_m(\mathbf{x}_t) = F_{m-1}(\mathbf{x}_t) + \eta\, h_m(\mathbf{x}_t),
 \]
+where $h_m(\cdot)$ is the newly fitted regression tree and $\eta$ is a learning rate that controls the contribution of each tree to the final prediction.
+From an intuitive perspective, XGBoost can be viewed as a method that corrects its own forecasting mistakes in every iteration.
 
-where $h_m(\cdot)$ is the newly fitted tree and $\eta$ is a learning rate that
-controls how strongly each tree contributes to the final forecast.
+XGBoost is included in this thesis for multiple reasons. First, it is one of the most used machine-learning models by practitioners \footnote{\url{https://www.kaggle.com/kaggle-survey-2022}}. Second, \textcite[p. 11]{Wang2025} proposed it as a promising area of research after finding strong results in yield-curve forecasting with ensemble-based methods. Lastly, its flexibility allows us to explicitly assess whether nonlinearities and interaction effects provide value for short-horizon U.S.\ yield curve forecasting. 
 
-In summary, XGBoost provides a flexible nonlinear approach that complements the
-linear structure imposed by ridge regression. Comparing both methods allows us
-to assess whether nonlinearities are relevant for short-horizon U.S.\ yield curve
-forecasting.
 
 \subsection{Hyperparameter Tuning}
 
-Both Ridge Regression and XGBoost require the selection of model-specific hyperparameters that control regularisation strength, model complexity, and learning behaviour. To determine suitable value for theses hyperparameter, we apply a traditional grid search approach as described in the evaluation of machine learning models literature \parencite[Chapter 4]{zheng2015evaluating}. The search is conducted entirely within the training sample using an expanding-window time-series cross-validation procedure, ensuring that all validation predictions are generated using only information available at the respective forecasting origin. The training sample spans January 2009 to December 2018, while the validation window extends from January 2014 to December 2018.
+Both Ridge Regression and XGBoost require the selection of model-specific hyperparameters that control regularisation strength, model complexity, and learning behaviour. To determine suitable value for theses hyperparameter, we apply a traditional grid search approach as described in the evaluation of machine learning models literature \parencite[Chapter 4]{zheng2015evaluating}. To avoid data leakage, the search is conducted entirely within the training sample using an expanding-window cross-validation procedure. The training sample spans January 2009 to December 2018, while the validation window extends from January 2014 to December 2018.
 
-For Ridge Regression, we tune the regularisation parameter $\lambda$ and the number of included lagged yield observations $p$. For XGBoost, the tuned hyperparameters are again the lag length $p$, learning rate $\eta$, maximum tree depth $d$, and the number of boosting iterations $T$. For each maturity and horizon, we select the combination of hyperparameters that yields the lowest RMSE in the validation period. Finally, the selected hyperparameters are fixed, and the respective model is re-estimated on the full training sample before producing the true out-of-sample forecasts.
+For Ridge Regression, we tune the regularisation parameter $\alpha$ and the number of included lagged yield observations $p$. For XGBoost, the tuned hyperparameters are again the lag length $p$, learning rate $\eta$, maximum tree depth $d$, and the number of boosting iterations $T$. For each maturity and horizon, we select the combination of hyperparameters that yields the lowest RMSE in the validation period. Finally, the selected hyperparameters are fixed, and the respective model is re-estimated on the full training sample before producing the final OOS forecasts.
 
 \section{Forecast Accuracy Evaluation}
-
+\hl{stopped here}
 In this section, the accuracy evaluation metrics used to compare the forecasting performance of the different models are presented. First, the Root Mean Squared Error (RMSE) is defined as the standard measure of statistical forecast accuracy. Then, the Diebold--Mariano test for comparing the predictive accuracy of competing forecasting models is introduced.
 
 \subsection{Root-Mean-Squared-Error}
@@ -464,75 +491,171 @@ To address this gap, this section evaluates the economic usefulness of the yield
 
 \subsection{Long-Short Trading Strategy}
 
-To examine whether the yield curve forecasts provide economic value, we evaluate a trading strategy that scales investment positions according to the magnitude of the forecasted excess return. The methodology directly follows the approach outlined by \textcite[pp.~2034--2035]{CarrieroKapetaniosMarcellino2012}. There is a range of other possible trading strategies such as the bond butterfly strategy outlined in \textcite[pp. 14-17]{AudrinoSerwart2022}, but the chosen approach has the advantage of being simple and applicable to all models and maturities in a consistent manner.
+To examine whether the yield curve forecasts of our models provide economic value,
+we evaluate a simple long--short trading strategy that takes directional investment
+positions based on the sign of the forecasted excess return. The overall strategy
+design and performance evaluation follow the approach outlined by
+\textcite[pp.~2034--2035]{CarrieroKapetaniosMarcellino2012}. While a range of alternative
+trading strategies exists, such as bond butterfly strategies
+\parencite[pp.~14--17]{AudrinoSerwart2022}, the chosen approach has the advantage of being
+simple and applicable to all models and maturities in a consistent manner.
 
-Since investors respond to returns, not raw yields, the model forecasts are first transformed into one-period excess holding returns. For a bond with maturity $\tau$, the forecasted holding-period return $\hat{r}^{(\tau)}_{t+1}$ is compared to the corresponding short-term rate $y^{(1)}_{t+1}$ to obtain a forecast of the excess return,
+Since investors respond to returns rather than raw yields, the model forecasts are
+first transformed into holding-period returns. As only constant-maturity Treasury
+yields are available in the dataset, we approximate the holding-period return of a
+bond with maturity $\tau$ over a horizon of $h$ trading days using a
+duration-based approximation \hl{Insert Source}. Specifically, the forecasted holding-period return is
+given by
 \begin{equation}
-\widehat{er}^{(\tau)}_{t+1} = \hat{r}^{(\tau)}_{t+1} - y^{(1)}_{t+1}.
+\hat{r}^{(\tau)}_{t,t+h}
+\approx
+- D_{\tau}
+\left(
+\hat{y}^{(\tau)}_{t+h|t} - y^{(\tau)}_{t}
+\right),
 \end{equation}
-The realized value of this return at time $t+1$ is denoted $er^{(\tau)}_{t+1} = r^{(\tau)}_{t+1} - y^{(1)}_{t+1}$.
+where $D_{\tau}$ denotes the modified duration associated with maturity $\tau$,
+$\hat{y}^{(\tau)}_{t+h|t}$ is the forecasted yield at horizon $t+h$, and
+$y^{(\tau)}_{t}$ is the observed yield at the forecast origin.
 
-Based on this forecast, a trading position is taken at time $t$ where the size of the position directly reflects the strength of the forecast. The resulting trading profit earned at time $t+1$ for maturity $\tau$ is
+The corresponding forecasted excess return is obtained by subtracting the
+short-term risk-free rate over the same horizon,
 \begin{equation}
-\pi^{(\tau)}_{t+1} = \left(\widehat{er}^{(\tau)}_{t+1}\right) \times \left(er^{(\tau)}_{t+1}\right) \times 100,
+\widehat{er}^{(\tau)}_{t,t+h}
+=
+\hat{r}^{(\tau)}_{t,t+h}
+-
+y^{(1)}_{t} \cdot \frac{h}{252},
 \end{equation}
-where the factor of 100 represents a notional trading capital. This mechanism can be best understood through a simple example. Suppose the model predicts that the yield on the 5-year Treasury will increase over the next five trading days. Because bond prices move inversely to yields \parencite[p. 23]{Fabozzi2000}, such an increase implies a decrease in the bond’s price over this period, resulting in a negative holding-period return. After subtracting the short-term rate, the model therefore issues a negative excess return forecast. In this case, the strategy would enter a short position in the 5-year bond, profiting if prices indeed fall as predicted.
-
-
-The performance of this trading strategy is evaluated across all models, maturities, and forecast horizons. The evaluation window corresponds to the full out-of-sample period from January 2019 to November 2025. We summarize performance using both cumulative trading profits and risk-adjusted returns. Following \textcite[p.~2035]{CarrieroKapetaniosMarcellino2012}, the average trading profit is computed as
+where $y^{(1)}_{t}$ denotes the one-year Treasury yield at time $t$. The realized excess
+return is analogously defined as
 \begin{equation}
-\bar{\pi} = \frac{1}{N}\sum_{t=1}^{N} \pi^{(\tau)}_{t},
+er^{(\tau)}_{t,t+h}
+=
+r^{(\tau)}_{t,t+h}
+-
+y^{(1)}_{t} \cdot \frac{h}{252}.
 \end{equation}
-and risk is accounted for using the Sharpe ratio,
+
+Based on the sign of the forecasted excess return, a trading position is taken at
+time $t$. Specifically, the strategy enters a long position in the bond if
+$\widehat{er}^{(\tau)}_{t,t+h} > 0$ and a short position if
+$\widehat{er}^{(\tau)}_{t,t+h} < 0$. The resulting trading profit realized at time
+$t+h$ is therefore given by
 \begin{equation}
-\text{Sharpe} = \frac{\bar{\pi}}{\sqrt{\frac{1}{N}\sum_{t=1}^{N}(\pi^{(\tau)}_{t} - \bar{\pi})^2}}.
+\pi^{(\tau)}_{t,t+h}
+=
+\text{sign}\!\left(\widehat{er}^{(\tau)}_{t,t+h}\right)
+\times er^{(\tau)}_{t,t+h}
 \end{equation}
-Higher average profits and Sharpe ratios indicate that a forecasting model provides more valuable trading signals and therefore delivers greater economic relevance.
 
-\subsection{Portfolio Optimization}
+This mechanism can be illustrated by a simple example. Suppose the model predicts
+that the yield on the 5-year Treasury will increase over the next five trading days.
+Because bond prices move inversely to yields \parencite[p.~23]{Fabozzi2000}, such an
+increase implies a decline in the bond’s price over this period, resulting in a
+negative holding-period return. After subtracting the short-term rate, the model
+therefore issues a negative excess return forecast. In this case, the strategy
+enters a short position in the 5-year bond, generating positive profits if yields
+indeed rise as predicted.
 
-To evaluate the economic value of yield curve forecasts, we adopt the fixed-income
-mean--variance portfolio framework of \textcite[pp.~14--15]{CaldeiraMouraSantos2016},
-which is based on the classical mean--variance approach of \textcite{markowitz1952portfolio}.
-The investor allocates wealth across zero-coupon Treasury bonds with maturities
-$T \in \{2,5,10\}$ years and rebalances every $h$ trading days. Portfolio weights satisfy
-the full-investment constraint
-\[
-    w_t^\top \iota = 1 ,
-\]
-and, in the no-short-selling specification, the additional restriction
-\[
-    w_t \ge 0 .
-\]
+The performance of the trading strategy is evaluated across all models, maturities,
+and forecast horizons over the full out-of-sample period from January 2019 to
+November 2025. The Random-Walk model is excluded from this comparison due to the lack of meaningful directional information in its forecasts. A investor cannot make a trading decision if all forecasts are identical to the last observed yield.
+Performance is assessed using the Sharpe ratio as a measure of risk-adjusted returns
+and the final wealth of an investor with an initial investment of 1{,}000. Following
+\textcite[p.~2035]{CarrieroKapetaniosMarcellino2012}, the Sharpe ratio is computed as
+\begin{equation}
+\text{Sharpe}
+=
+\frac{\bar{\pi}}
+{\sqrt{
+\frac{1}{N}
+\sum_{t=1}^{N}
+\left(\pi_t - \bar{\pi}\right)^2
+}},
+\end{equation}
+where $\pi_t$ denotes the strategy return in period $t$ and $\bar{\pi}$ its sample
+mean.
 
-Given an $h$-period-ahead vector of expected bond returns $\mu^{(m)}_{r\mid t+h}$
-derived from model $m$'s yield forecasts, and the variance--covariance matrix of
-$h$-period returns $\Sigma_r$, the optimal portfolio is obtained by solving the
-mean--variance optimization problem
-\[
-    \min_{w_t} \; w_t^\top \Sigma_r w_t
-    \;-\; \frac{1}{\delta} \, w_t^\top \mu^{(m)}_{r\mid t+h},
-\]
-where $\delta > 0$ denotes the investor's risk-aversion parameter. For simplicity we will be using one of \textcite[p. 15]{CaldeiraMouraSantos2016}'s values and fix it at $\delta = 1$.
+Final wealth is computed by assuming full reinvestment of gains and losses over
+non-overlapping trading periods. Specifically, terminal wealth is given by
+\begin{equation}
+W_T
+=
+W_0
+\prod_{t \in \mathcal{T}_h}
+\left(
+1
++
+\text{sign}\!\left(\widehat{er}_{t,t+h}\right)
+\cdot
+er_{t,t+h}
+\right),
+\end{equation}
+where $W_0 = 1{,}000$ denotes initial capital and $\mathcal{T}_h$ is the set of
+non-overlapping forecast origin dates for horizon $h$. Ideally a good forecasting model produces high Sharpe ratios and high terminal wealth.
 
-This optimization is performed recursively for each forecast origin from January~2019
-to November~2025 and for horizons $h \in \{1,5,10,30\}$ trading days. The resulting
-out-of-sample portfolio returns allow us to assess the economic value contributed by
-each forecasting model.
+\subsection{Risk-Reduction Strategy}
 
-To evaluate the economic value of the resulting portfolio strategies, we again follow
-\textcite[pp.~15--16]{CaldeiraMouraSantos2016} and assess performance in terms of
-out-of-sample Sharpe ratios. For each forecasting model $m$, the sequence of
-realized portfolio returns generated by the recursive mean--variance optimization
-is converted into excess returns and summarized by
-\[
-    SR^{(m)} = 
-    \frac{\bar{r}^{(m)}}{\hat{\sigma}^{(m)}},
-\]
-where $\bar{r}^{(m)}$ denotes the average excess return and $\hat{\sigma}^{(m)}$
-its standard deviation. This is essentially the same Sharpe ratio metric that we also compute in Chapter 4.5.1. The Sharpe ratio provides a unified measure of the
-risk–return trade-off implied by each forecasting model. Higher Sharpe ratios indicate that the model's forecasts allow for a more effective portfolio optimization.
+To assess whether our models forecasts can be used to manage interest rate risk, we now evaluate a
+risk-reduction strategy that controls bond market exposure based on yield forecasts. 
+The key difference to the long-short trading strategy is that we're not trying to maximize returns through directional bets,
+but rather reduce the overall risk of a bond portfolio by avoiding exposure during unfavorable market conditions.
 
+The setup of the strategy works as follows. An investor holds a portfolio of U.S. Treasury bonds with 2-, 5-, and 10-year maturities.
+Based on the model's yield forecasts, the investor decides at each rebalancing date whether to maintain full exposure to the bond portfolio or temporarily move to cash to reduce risk.
+Decision are made on portfolio-level excess returns rather than individual bonds.
+The benchmark for comparision is a buy-and-hold strategy that remains fully invested in the bond portfolio at all times.
+
+At each forecast origin $t$, the model produces yield level forecasts
+$\hat{y}^{(\tau_i)}_{t+h|t}$ for all maturities included in the portfolio. These
+forecasts are mapped into predicted holding-period returns using the same
+duration-based approximation we used in the trading strategy.
+The predicted portfolio return is obtained as the weighted average of the
+maturity-specific predicted returns,
+\begin{equation}
+\hat{r}^{\text{port}}_{t,t+h}
+=
+\sum_{i=1}^{K} w_i \, \hat{r}^{(\tau_i)}_{t,t+h},
+\end{equation}
+and the corresponding forecasted excess return is given by
+\begin{equation}
+\widehat{er}^{\text{port}}_{t,t+h}
+=
+\hat{r}^{\text{port}}_{t,t+h}
+-
+r^f_{t,t+h}.
+\end{equation}
+
+The forecasted portfolio excess return serves as a signal for the strategy. At each
+rebalancing date $t$, the strategy takes bond market exposure only if the model
+predicts a positive excess return,
+\begin{equation}
+\text{position}_t
+=
+\begin{cases}
+1, & \text{if } \widehat{er}^{\text{port}}_{t,t+h} > 0, \\
+0, & \text{otherwise}.
+\end{cases}
+\end{equation}
+The realized payoff of the timing strategy at time $t+h$ is therefore given by
+\begin{equation}
+\pi^{\text{Timing}}_{t,t+h}
+=
+\text{position}_t
+\times
+er^{\text{port}}_{t,t+h}.
+\end{equation}
+
+where the realized portfolio excess calculated in the same way as the forecasted excess return, just using realized returns instead of forecasts.
+
+Again, this can be illustrated with a simple example. Suppose the model predicts that yields for the 2- and 5-year bonds
+will rise over the next month, while the 10-year yield is expected to decrease. The predicted holding-period returns for the 2- and 5-year bonds will be negative, while the 10-year bond's will be positive. If the weighted average of these predicted returns, after subtracting the risk-free rate, results in a negative forecasted excess return for the portfolio, the timing strategy will move to cash, thereby avoiding potential losses from rising yields.
+If the yields move as predicted, the strategy has successfully reduced risk by avoiding exposure during unfavorable market conditions.
+
+All evaluations are conducted over the out-of-sample period from
+January 2019 to November 2025. Performance is assessed using maximum drawdown, volatility and final wealth. Additionally we will compute the difference of each metric compared to a naive buy-and-hold portfolio strategy to see if the forecasts allowed for a meaningful reduction in risk.
+As in the trading strategy, the Random-Walk model is excluded from this comparision because of the lack of directional signals. Ideally a good forecast produces low volatility and low maximum drawdown while maintaining reasonable final wealth.
 
 \chapter{Results and Discussion}
 
@@ -567,9 +690,6 @@ Table~\ref{tab:rmse_results} reports the out-of-sample RMSE values for all model
 RMSE increases monotonically with the forecast horizon. The increase is smallest for the Random Walk, moderate for DNS and Ridge, and steepest for XGBoost. Second, forecast errors tend to rise from the 2-year to the 5-year maturity, but decrease again for the 10-year maturity. 
 Third, the Random Walk benchmark consistently produces the lowest RMSE across all maturities and horizons, while DNS and Ridge perform very similarly, with only small numerical differences. Finally, XGBoost exhibits the highest RMSE values across all settings, with the performance gap becoming more pronounced at longer horizons. 
 Overall, the relative ranking of models remains stable across maturities and horizons.
-
-The observed RMSE patterns are consistent with previous findings in the interest rate forecasting literature. The strong performance of the Random Walk reflects the empirical difficulty of achieving predictability in daily yield changes, a result documented in numerous studies \hl{insert source}. DNS and Ridge perform similarly because both models rely on smooth, low-dimensional representations of the yield curve. In contrast, XGBoost performs substantially worse, especially at longer horizons. This may stem from a couple of factors. First, the relatively small size of the dataset. Machine learning models like XGBoost typically require large amounts of data to learn effectively \hl{insert source} and therefore may struggle in this setting. Second, the high noise-to-signal ratio in daily yield changes may prevent the model from captruing meaningful patterns and leading to overfitting. This essentially means the model learns the noise in the training data rather than any meaninful structure of the yield curve.
-The decrease in errors between the 5-year and 10-year yields suggests that medium-term rates may have a greater short-run volatility than long-term yields, which are more strongly anchored by long-run expectations \hl{insert source}. Overall, the RMSE results indicate that in our setting, machine learning models don't have any predictive edge over traditional econometric approaches. If the differences in RMSE are statistically significant is evaluated in the next section using the Diebold-Mariano test.
 
 
 \begin{table}[htbp]
@@ -616,6 +736,11 @@ Lowest RMSE for each maturity and horizon is highlighted in bold.
 \end{minipage}
 \end{table}
 
+The observed RMSE patterns are consistent with previous findings in the interest rate forecasting literature. The strong performance of the Random Walk reflects the empirical difficulty of achieving predictability in daily yield changes, a result documented in numerous studies \hl{insert source}. DNS and Ridge perform similarly because both models rely on smooth, low-dimensional representations of the yield curve. In contrast, XGBoost performs substantially worse, especially at longer horizons. This may stem from a couple of factors. First, the relatively small size of the dataset. Machine learning models like XGBoost typically require large amounts of data to learn effectively \hl{insert source} and therefore may struggle in this setting. Second, the high noise-to-signal ratio in daily yield changes may prevent the model from captruing meaningful patterns and leading to overfitting. This essentially means the model learns the noise in the training data rather than any meaninful structure of the yield curve.
+The decrease in errors between the 5-year and 10-year yields suggests that medium-term rates may have a greater short-run volatility than long-term yields, which are more strongly anchored by long-run expectations \hl{insert source}. Overall, the RMSE results indicate that in our setting, machine learning models don't have any predictive edge over traditional econometric approaches. If the differences in RMSE are statistically significant is evaluated in the next section using the Diebold-Mariano test.
+
+
+
 
 \subsection{Diebold-Mariano Test Results}
 
@@ -631,139 +756,420 @@ The inferior and highly statistical signifcant performance of XGBoost further re
 
 \subsection{Long-Short Trading Strategy Results}
 
+Table~\ref{tab:trading_sharpe} reports the performance of the long-short trading strategy across all models, maturities, and forecast horizons. As mentioned in Section 4.5.1, the results of the RW are not included, because the of the lack of directional signals in its forecasts.
+Several important observations can be made. First, the DNS model ranks highest in terms of Sharpe ratio in 8 out of 12 maturity-horizon combinations, positioning it as the overall best performer. In most cases the Sharpe of the DNS model is not just the highest, but also substantially higher than the other models. Second, Ridge regression achieves the highest Sharpe ratio in 3 out of 12 cases, just barely outperforming DNS in those settings. Third, XGBoost only achieves the highest Sharpe ratio in one single case (10-year yield, 10-day horizon), and generally produces the lowest Sharpe ratios across most settings. Lastly, the final wealth outcomes are in line with the Sharpe ratio results, with DNS often leading to the highest terminal wealth. It must be noted that a high terminal wealth alone is not sufficient to judge the quality of a trading strategy. XGBoost, for example achieves the highest final wealth for the 5-year yield at the 10-day horizon, despite having the lowest Sharpe ratio, indicating that the forecast lead to excessive risk-taking which played out well in this specific case.
 
+Comparing these results with what we observed in the statistical forecast accuracy evaluation is very interesting.
+While DNS and Ridge performed very similarly in terms of RMSE, DNS clearly outperforms Ridge in the trading strategy evaluation. This divergence suggests that statistical accuracy alone does not guarantee economic value.
+Altough Ridge regression achieves comparable forecast precision in terms of RMSE, it appears less effective at forecasting the direction of yield movements, which is the fundament of a sign based trading strategy. 
+DNS, on the other hand, seems to better capture the directional dynamics of yields, leading to a translation of its forecast into economic gains. A possible explanation for this is that the RMSE treats positive and negative errors symmetrically, whereas in our trading setup the sign of the forecast is crucial. DNS's models structure (level, slope, curvature) seems to be better aligned with the directional movements, something the Ridge regression doesn't seems to capture as well.
+XGBoost's poor performance in the trading strategy aligns with its high RMSE values, indicating that its forecasts lack both accuracy and directional usefulness compared to the other models.
 
-\begin{table}[htbp]
+We can conclude that statistical accuracy does not necessarily translate into economic value, as seen in the differing performance of DNS and Ridge. With regards to our research questions, we found no evidence that machine learning models provide additional economic value in our long-short trading strategy setup. Instead, traditional econometric models, in our case DNS, consistently delivers superior risk-adjusted returns. Due to the vast amount of different setups, strategies and model specifications used in the literature, a direct comparistion with previous studies is difficult. However, our findings are generally in line with the consensus that econometric models are difficult to beat \hl{insert source}.
+
+\begin{table}[H]
 \centering
-\caption{Long--Short Trading Strategy Performance \hl{CHECK NUMBERS}}
-\label{tab:trading_full}
+\caption{Sharpe ratios and final wealth of the long--short trading strategy}
+\label{tab:trading_sharpe}
 
 \begin{threeparttable}
 \begin{adjustbox}{max width=\textwidth}
-\begin{tabular}{ll l r r}
+\begin{tabular}{lll r r}
 \toprule
-Maturity & Horizon & Model & Avg\_Profit & Sharpe \\
+Maturity & Horizon & Model & Sharpe & Final Wealth \\
 \midrule
-DGS10 & 1  & DNS     & 0.005325 & \textbf{0.009020} \\
-DGS10 & 1  & Ridge   & 0.002795 & 0.004733 \\
-DGS10 & 1  & XGBoost & 0.001597 & 0.002697 \\
+DGS10 & 1  & DNS     & \textbf{0.0090} & 1063.72 \\
+DGS10 & 1  & Ridge   & 0.0047          & 1018.31 \\
+DGS10 & 1  & XGBoost & 0.0027          &  997.33 \\
 \midrule
-DGS2  & 1  & DNS     & 0.011792 & \textbf{0.096048} \\
-DGS2  & 1  & Ridge   & 0.011034 & 0.089826 \\
-DGS2  & 1  & XGBoost & 0.004860 & 0.039319 \\
+DGS2  & 1  & DNS     & \textbf{0.0960} & 1223.97 \\
+DGS2  & 1  & Ridge   & 0.0898          & 1208.08 \\
+DGS2  & 1  & XGBoost & 0.0393          & 1085.33 \\
 \midrule
-DGS5  & 1  & DNS     & 0.015444 & \textbf{0.049344} \\
-DGS5  & 1  & Ridge   & 0.009846 & 0.031435 \\
-DGS5  & 1  & XGBoost & -0.004809 & -0.015312 \\
+DGS5  & 1  & DNS     & \textbf{0.0493} & 1294.27 \\
+DGS5  & 1  & Ridge   & 0.0314          & 1175.13 \\
+DGS5  & 1  & XGBoost & -0.0153         &  917.34 \\
 \midrule
-DGS10 & 5  & DNS     & 0.031187 & 0.024520 \\
-DGS10 & 5  & Ridge   & 0.065408 & \textbf{0.051479} \\
-DGS10 & 5  & XGBoost & -0.026638 & -0.020875 \\
+DGS10 & 5  & DNS     & 0.0245          & 1091.94 \\
+DGS10 & 5  & Ridge   & \textbf{0.0515} & 1004.13 \\
+DGS10 & 5  & XGBoost & -0.0209         &  945.25 \\
 \midrule
-DGS2  & 5  & DNS     & 0.059420 & 0.223493 \\
-DGS2  & 5  & Ridge   & 0.060162 & \textbf{0.226424} \\
-DGS2  & 5  & XGBoost & 0.042786 & 0.158538 \\
+DGS2  & 5  & DNS     & 0.2235          & 1223.93 \\
+DGS2  & 5  & Ridge   & \textbf{0.2264} & 1224.63 \\
+DGS2  & 5  & XGBoost & 0.1585          & 1154.73 \\
 \midrule
-DGS5  & 5  & DNS     & 0.075092 & \textbf{0.111831} \\
-DGS5  & 5  & Ridge   & 0.040227 & 0.059643 \\
-DGS5  & 5  & XGBoost & 0.073469 & 0.109057 \\
+DGS5  & 5  & DNS     & \textbf{0.1118} & 1265.02 \\
+DGS5  & 5  & Ridge   & 0.0596          & 1134.48 \\
+DGS5  & 5  & XGBoost & 0.1091          & 1146.69 \\
 \midrule
-DGS10 & 10 & DNS     & 0.078425 & 0.043470 \\
-DGS10 & 10 & Ridge   & 0.035826 & 0.019843 \\
-DGS10 & 10 & XGBoost & 0.119170 & \textbf{0.065932} \\
+DGS10 & 10 & DNS     & 0.0435          & 1068.86 \\
+DGS10 & 10 & Ridge   & 0.0198          &  859.24 \\
+DGS10 & 10 & XGBoost & \textbf{0.0659} & 1133.50 \\
 \midrule
-DGS2  & 10 & DNS     & 0.119098 & \textbf{0.307745} \\
-DGS2  & 10 & Ridge   & 0.119098 & \textbf{0.307745} \\
-DGS2  & 10 & XGBoost & 0.095151 & 0.241033 \\
+DGS2  & 10 & DNS     & \textbf{0.3077} & 1226.33 \\
+DGS2  & 10 & Ridge   & \textbf{0.3077} & 1226.33 \\
+DGS2  & 10 & XGBoost & 0.2410          & 1174.05 \\
 \midrule
-DGS5  & 10 & DNS     & 0.146670 & \textbf{0.153814} \\
-DGS5  & 10 & Ridge   & 0.103387 & 0.107783 \\
-DGS5  & 10 & XGBoost & 0.092725 & 0.096252 \\
+DGS5  & 10 & DNS     & \textbf{0.1538} & 1265.87 \\
+DGS5  & 10 & Ridge   & 0.1078          & 1185.34 \\
+DGS5  & 10 & XGBoost & 0.0963          & 1304.76 \\
 \midrule
-DGS10 & 30 & DNS     & 0.379732 & \textbf{0.114297} \\
-DGS10 & 30 & Ridge   & 0.062228 & 0.018612 \\
-DGS10 & 30 & XGBoost & -0.054254 & -0.016165 \\
+DGS10 & 30 & DNS     & \textbf{0.1143} & 1230.77 \\
+DGS10 & 30 & Ridge   & 0.0186          & 1254.82 \\
+DGS10 & 30 & XGBoost & -0.0162         &  883.34 \\
 \midrule
-DGS2  & 30 & DNS     & 0.356992 & 0.466077 \\
-DGS2  & 30 & Ridge   & 0.357056 & \textbf{0.466179} \\
-DGS2  & 30 & XGBoost & 0.274784 & 0.342678 \\
+DGS2  & 30 & DNS     & 0.4661          & 1224.82 \\
+DGS2  & 30 & Ridge   & \textbf{0.4662} & 1224.82 \\
+DGS2  & 30 & XGBoost & 0.3427          & 1200.91 \\
 \midrule
-DGS5  & 30 & DNS     & 0.419740 & \textbf{0.237266} \\
-DGS5  & 30 & Ridge   & 0.376238 & 0.211509 \\
-DGS5  & 30 & XGBoost & 0.122118 & 0.067067 \\
+DGS5  & 30 & DNS     & \textbf{0.2373} & 1265.69 \\
+DGS5  & 30 & Ridge   & 0.2115          & 1265.69 \\
+DGS5  & 30 & XGBoost & 0.0671          & 1000.64 \\
 \bottomrule
 \end{tabular}
 \end{adjustbox}
+
+\begin{minipage}{0.95\textwidth}
+\centering
+\small
+Highest Sharpe ratio for each maturity and forecast horizon is highlighted in bold.
+\end{minipage}
 \end{threeparttable}
 \end{table}
 
 
+
+\clearpage
 \subsection{Risk-Reduction Strategy Results}
 
-\chapter{Conclusion}
-Talk about extensions, limitations, summary of findings
-\hl{Possible Extensions: Use Markowirz portfolio approach like Caldeira 2016, use more developed DNS model, include more maturities, include macro variables like Diebold and LI proposed, use more sophisticated ML MOdels, more hyperparameter Tuning}
+Table~\ref{tab:risk_reduction_delta} reports the performance of the risk-reduction strategy across models and forecast horizons. 
+As mentioned in section 4.5.2 the RW is not included in this comparision. Several empirical observations emerge from the results.
+First, all forecasting models outperform the Buy-and-Hold benchmark by a substantial margin. This improvement is reflected in consistently lower portfolio volatility, significantly reduced maximum drawdowns, and higher final wealth levels. In particular, the reduction in maximum drawdown ranges between approximately 8 and 19 percentage points, indicating economically meaningful risk reduction.
+Second, no model clearly dominates the risk-reduction evaluation across all horizons. Ridge regression performs best at short horizons of one and five trading days, DNS exhibits the strongest performance at the ten-day horizon, and XGBoost achieves the largest drawdown reduction at the thirty-day horizon. Moreover, the differences between models are relatively small, especially at longer horizons, where all forecasts lead to very similar outcomes.
 
+Figure~\ref{fig:risk_reduction_wealth} provides a visual illustration of the main findings of the risk-reduction analysis. The figure shows the evolution of portfolio wealth for the Buy-and-Hold benchmark and the timing strategies based on DNS, Ridge, and XGBoost forecasts over the complete OOS period. While the Buy-and-Hold strategy exhibits substantial drawdowns and significant wealth fluctuations, the timing strategies maintain a visibly more stable wealth path.
+The period following 2022 is particularly informative. During the sharp increase in U.S. Treasury yields associated with the monetary tightening cycle in the beginning of 2022, the Buy-and-Hold portfolio experiences a pronounced decline in wealth. In contrast, the timing strategies are able to avoid a large fraction of this downside risk by exiting the bond market when forecasted excess returns turn negative. This behavior illustrates the economic value of yield curve forecasts for managing downside risk during periods of market stress. Also the similar performance of the models can be seen by the almost identical wealth curves of DNS, Ridge, and XGBoost.
+
+These findings differ from the pattern observed in the long--short trading strategy and highlight an important distinction between directional trading and risk management. While the trading strategy requires accurate and stable forecasts of the direction of yield changes, the risk-reduction strategy primarily benefits from the ability to identify periods of elevated risk during which market exposure should be reduced.
+From this perspective, machine learning models like Ridge and XGboost appear well-suited for the risk-reduction task. Ridge regression applies shrinkage to stabilize coefficients in the presence of multicollinearity and noise \parencite{hoerl1970ridge}. By supressing unstable directions, ridge regression effectively filters out short-term noise and focuses on persistent, systematic changes which is beneficial for distinguishing short-term fluctuations from more sustained risk patterns. XGBoost, in turn, builds predictions as an additive ensemble of decision trees, which allows it to capture non-linearities and treshold effects \parencite{chen2016xgboost}. This flexibility has been shown to be advantageous for detecting broader market regimes \parencite[p. 2]{delgado2022yieldcurve}, which helps explain its strong performance in the risk-reduction evaluation.
+
+With regards to our research question, we can draw two conclusions. First, yield curve forecasts can provide substantial economic value in the context of risk-reduction by providing an investor with important information about when to avoid market exposure. Second, machine-learning models such as Ridge regression and XGBoost show promising results in detecting high-risk environments and can even beat econometric model in some scenarios.
+
+\begin{table}[H]
+\centering
+\caption{Risk-reduction strategy}
+\label{tab:risk_reduction_delta}
+
+\begin{threeparttable}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tabular}{ll rr rr rr}
+\toprule
+Horizon & Strategy
+& Std & $\Delta$ Std
+& Max DD & $\Delta$ Max DD
+& Final Wealth & $\Delta$ Final Wealth \\
+\midrule
+\multirow{4}{*}{1}
+& Buy-and-Hold & 0.00331 & -- & -31.54\% & -- & 0.7641 & -- \\
+& DNS          & 0.00228 & -0.00103 & -13.75\% & +17.78pp & 0.9318 & +0.1677 \\
+& Ridge        & 0.00227 & -0.00104 & -12.51\% & \textbf{+19.03pp} & 0.9402 & +0.1761 \\
+& XGBoost      & 0.00227 & -0.00104 & -17.20\% & +14.33pp & 0.8943 & +0.1302 \\
+\midrule
+\multirow{4}{*}{5}
+& Buy-and-Hold & 0.00724 & -- & -31.21\% & -- & 0.7729 & -- \\
+& DNS          & 0.00487 & -0.00237 & -23.26\% & +7.94pp  & 0.7814 & +0.0085 \\
+& Ridge        & 0.00476 & -0.00248 & -20.98\% & \textbf{+10.23pp} & 0.7992 & +0.0263 \\
+& XGBoost      & 0.00525 & -0.00199 & -23.21\% & +8.00pp  & 0.7896 & +0.0168 \\
+\midrule
+\multirow{4}{*}{10}
+& Buy-and-Hold & 0.01002 & -- & -31.06\% & -- & 0.7683 & -- \\
+& DNS          & 0.00758 & -0.00244 & -18.09\% & \textbf{+12.97pp} & 0.9314 & +0.1631 \\
+& Ridge        & 0.00761 & -0.00241 & -19.00\% & +12.06pp & 0.9265 & +0.1583 \\
+& XGBoost      & 0.00803 & -0.00199 & -26.44\% & +4.61pp  & 0.8218 & +0.0535 \\
+\midrule
+\multirow{4}{*}{30}
+& Buy-and-Hold & 0.01811 & -- & -30.52\% & -- & 0.7672 & -- \\
+& DNS          & 0.01247 & -0.00564 & -20.00\% & +10.52pp & 0.8230 & +0.0558 \\
+& Ridge        & 0.01251 & -0.00560 & -20.00\% & +10.52pp & 0.8257 & +0.0585 \\
+& XGBoost      & 0.01258 & -0.00553 & -19.08\% & \textbf{+11.44pp} & 0.8257 & +0.0585 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+
+\begin{minipage}{0.95\textwidth}
+\centering
+\small
+Highest reduction of maximum drawdown is highlighted in bold. $\Delta$ uses the Buy-and-Hold strategy as a benchmark.
+\end{minipage}
+\end{threeparttable}
+\end{table}
+
+\begin{figure}[H]
+    \includegraphics[width=\textwidth]{risk_plot}
+    \caption[
+    Wealth evolution across the OOS period ($h=1$)
+    ]{
+    Wealth evolution of every model across the out-of-sample period for the $h=1$ horizon.\\
+    (Source: Own representation)
+    }
+    \label{fig:risk_reduction_wealth}
+\end{figure}
+
+
+\chapter{Robustness Check}
+This chapter examines the robustness of our main findings, by employing a subsample analysis. We divide the OOS period into 2 equally sized intervals, with the first subsample spanning from January 2019 to June 2022 and the second from June 2022 to November 2025. We will re-evaluate the RMSE results as well as the risk-reduction strategy performance in both subsamples to see if our main findings hold across different market environments. The trading strategy is excluded from this robustness check because directional trading results are naturally very sensitive to specific market condiditions and the result of the subsamples would therefore be difficult to interpret. While it is beyond the scope of this thesis, to analyze which model performs best in which kind of macroeconomic regime, the subsample analysis still provides meaningfull information about generalizability of our findings. 
+
+Looking at the RMSE robustness results, several intersting patterns emerge. For the second subsample, the model ranking closely resembles the findings from the full OOS period. In contrast, the first subsample exhibits a different performance pattern. Here, XGBoost unexpectedly outperforms all other models across a substantial number of maturities and forecast horizons. XGBoost is followed by the RW, while DNS and Ridge achieve a very similar and weaker performance.
+This suggests that XGBoost was able to capture yield curve dynamics better than all other models during the first subsample, but that its forecasting performance deteriorated substantially in the second subsample. Moreover, the finding that DNS and Ridge perform very similarly and are consistently outperformed by the RW holds in both subsamples. This indicates that the underperformance of DNS and Ridge compared to the RW is robust across different market environments.
+
+Looking at the risk-reduction robustness results, several similarities to the full-sample findings emerge. Across both subsamples, all forecasting models lead to substantial reductions in standard deviation and maximum drawdown relative to the buy-and-hold benchmark. No model consistently dominates the others across all horizons. Instead, the machine-learning models outperform the econometric benchmark in some cases, while being behind in others.
+Importantly, these patterns are observed in both subsamples, indicating that the effectiveness of the risk-reduction strategy is not driven by a specific market regime.
+
+In summary, our main findings regarding statistical forecast accuracy, in terms of RMSE, appear to be dependent on the market regime at that time. While XGBoost exhibits comparatively weak performance over the full OOS period, it outperforms the other models in the first half of the evaluation window. This indicates that the relative performance of more flexible machine-learning models can vary substantially across market environments.
+In contrast, the results for the risk-reduction strategy appear to be more robust with respect to market conditions. Across both subsamples, the ranking of models remains consistent with the full OOS results, suggesting that these findings are less sensitive to regime changes. The full result tables of the robustness checks can be found in Table~\ref{tab:rmse_robustness_appendix} and ~\ref{tab:risk_reduction_robustness_compact} in the Appendix.
+
+\clearpage
+\chapter{Conclusion}
+In this thesis, we had three main objectives. First, to develop a clean and reproducible forecasting framework and evaluation methodology that assesses both statistical accuracy and economic value. Second, to use this framework to examine whether machine-learning models such as ridge regression and XGBoost can improve short-horizon U.S. Treasury yield-curve forecasts relative to traditional econometric approaches. Third, to investigate whether gains in statistical forecast accuracy translate into economic value for an investor, measured through trading performance and risk-reduction outcomes.
+
+With respect to the first objective, this thesis developed a transparent and reproducible framework for evaluating U.S. Treasury yield forecasts across maturities and short horizons. Statistical accuracy was assessed using RMSE and Diebold–Mariano tests, while economic value was evaluated through a long–short trading strategy and a risk-reduction simulation.
+For the second objective, we find that no model consistently outperforms the random-walk benchmark in terms of statistical accuracy. Based on RMSE, a stable ranking emerges with the random walk performing best, followed by DNS and Ridge regression with very similar accuracy, and XGBoost performing worst. While the differences between DNS, Ridge, and the random walk are not statistically significant in several cases, XGBoost is consistently and significantly outperformed by the benchmark.
+Regarding the third objective, the results show that statistical accuracy does not directly translate into economic value. In the trading strategy, the DNS model substantially outperforms Ridge regression despite comparable RMSE values. Overall, DNS delivers the strongest trading performance, followed by Ridge regression and XGBoost. In contrast, the risk-reduction exercise yields more uniform results: all models achieve substantial reductions in volatility and drawdowns relative to a buy-and-hold benchmark, with no model clearly dominating across all horizons.
+
+Several limitations should be considered when interpreting the findings of this thesis. First, the results for statistical forecast accuracy are not fully robust across different market regimes. While the risk-reduction results remain broadly stable across subperiods, RMSE rankings vary over time, indicating that forecast accuracy may be sensitive to market conditions.
+Second, the empirical analysis is based on a relatively limited dataset. Incorporating longer historical samples, additional maturities, or longer forecasting horizons could provide a more comprehensive assessment.
+Third, the forecasting models employed in this thesis are kept relatively simple. While this ensures transparency and comparability, more complex specifications such as the inclusion of macroeconomic variables, richer feature engineering, or more extensive hyperparameter tuning could potentially improve performance and deliver additional insights.
+With that in mind, there are interst
+
+Diretions of future research: Include more maturities and horizon, macro variables, more complex models, analyze regime specific behaviour
+
+
+\clearpage
 \chapter*{Literature}
 \addcontentsline{toc}{chapter}{Literature}
 
+\clearpage
 \appendix
 \chapter*{Appendix}
 \addcontentsline{toc}{chapter}{Appendix}
+\setcounter{section}{0}
+\renewcommand{\thesection}{A.\arabic{section}}
 
-\begin{table}[htbp]
+\setcounter{tocdepth}{-1}
+
+\section{Technical Implementation}
+
+All empirical analyses and simulations in this thesis were implemented in
+\texttt{Python} (version 3.11). The main libraries used include
+\texttt{NumPy}, \texttt{pandas}, \texttt{scikit-learn}, \texttt{xgboost}, \texttt{statsmodels}, and \texttt{matplotlib}.
+
+For transparency and reproducibility, the full codebase used to generate all
+results and figures is publicly available at
+\url{https://github.com/chris-room13/yield-curve-forecasting}.
+
+\clearpage
+
+
+\section{Diebold--Mariano Test Result Table}
+Here, the full set of Diebold--Mariano test results discussed in Section 5.2.2 is presented.
+
+\begin{table}[H]
 \centering
-\caption{Diebold--Mariano Test Results (Random Walk as Benchmark) \hl{CHECK NUMBERS, REMOVE N}}
+\caption{Diebold--Mariano Test Results}
 \label{tab:dm_full}
-\begin{tabular}{llccccc}
+\begin{tabular}{llcccc}
 \hline\hline
-Maturity & Horizon & Model 1 & Model 2 & DM statistic & p-value & $N$ \\
+Maturity & Horizon & Model 1 & Model 2 & DM statistic & p-value \\
 \hline
-DGS10 & 1  & RW & DNS     & -2.0761 & 0.0379 & 1725 \\
-DGS10 & 1  & RW & Ridge   & -1.3505 & 0.1769 & 1725 \\
-DGS10 & 1  & RW & XGBoost & -3.8058 & 0.0001 & 1712 \\
-DGS10 & 5  & RW & DNS     & -2.5422 & 0.0110 & 1721 \\
-DGS10 & 5  & RW & Ridge   & -1.5479 & 0.1216 & 1721 \\
-DGS10 & 5  & RW & XGBoost & -3.9771 & 0.0001 & 1708 \\
-DGS10 & 10 & RW & DNS     & -2.6056 & 0.0092 & 1716 \\
-DGS10 & 10 & RW & Ridge   & -2.7682 & 0.0056 & 1716 \\
-DGS10 & 10 & RW & XGBoost & -2.6325 & 0.0085 & 1703 \\
-DGS10 & 30 & RW & DNS     & -2.2510 & 0.0244 & 1696 \\
-DGS10 & 30 & RW & Ridge   & -3.1588 & 0.0016 & 1696 \\
-DGS10 & 30 & RW & XGBoost & -3.1827 & 0.0015 & 1683 \\
+DGS10 & 1  & RW & DNS     & -2.0761 & 0.0379 \\
+DGS10 & 1  & RW & Ridge   & -1.3505 & 0.1769 \\
+DGS10 & 1  & RW & XGBoost & -3.8058 & 0.0001 \\
+DGS10 & 5  & RW & DNS     & -2.5422 & 0.0110 \\
+DGS10 & 5  & RW & Ridge   & -1.5479 & 0.1216 \\
+DGS10 & 5  & RW & XGBoost & -3.9771 & 0.0001 \\
+DGS10 & 10 & RW & DNS     & -2.6056 & 0.0092 \\
+DGS10 & 10 & RW & Ridge   & -2.7682 & 0.0056 \\
+DGS10 & 10 & RW & XGBoost & -2.6325 & 0.0085 \\
+DGS10 & 30 & RW & DNS     & -2.2510 & 0.0244 \\
+DGS10 & 30 & RW & Ridge   & -3.1588 & 0.0016 \\
+DGS10 & 30 & RW & XGBoost & -3.1827 & 0.0015 \\
 \hline
-DGS2  & 1  & RW & DNS     & -1.3187 & 0.1873 & 1725 \\
-DGS2  & 1  & RW & Ridge   & -1.3121 & 0.1895 & 1725 \\
-DGS2  & 1  & RW & XGBoost & -3.9530 & 0.0001 & 1712 \\
-DGS2  & 5  & RW & DNS     & -1.2337 & 0.2173 & 1721 \\
-DGS2  & 5  & RW & Ridge   & -1.3781 & 0.1682 & 1721 \\
-DGS2  & 5  & RW & XGBoost & -3.6527 & 0.0003 & 1708 \\
-DGS2  & 10 & RW & DNS     & -1.2317 & 0.2181 & 1716 \\
-DGS2  & 10 & RW & Ridge   & -1.5214 & 0.1282 & 1716 \\
-DGS2  & 10 & RW & XGBoost & -2.5752 & 0.0100 & 1703 \\
-DGS2  & 30 & RW & DNS     & -1.5012 & 0.1333 & 1696 \\
-DGS2  & 30 & RW & Ridge   & -2.5841 & 0.0098 & 1696 \\
-DGS2  & 30 & RW & XGBoost & -2.4089 & 0.0160 & 1683 \\
+DGS2  & 1  & RW & DNS     & -1.3187 & 0.1873 \\
+DGS2  & 1  & RW & Ridge   & -1.3121 & 0.1895 \\
+DGS2  & 1  & RW & XGBoost & -3.9530 & 0.0001 \\
+DGS2  & 5  & RW & DNS     & -1.2337 & 0.2173 \\
+DGS2  & 5  & RW & Ridge   & -1.3781 & 0.1682 \\
+DGS2  & 5  & RW & XGBoost & -3.6527 & 0.0003 \\
+DGS2  & 10 & RW & DNS     & -1.2317 & 0.2181 \\
+DGS2  & 10 & RW & Ridge   & -1.5214 & 0.1282 \\
+DGS2  & 10 & RW & XGBoost & -2.5752 & 0.0100 \\
+DGS2  & 30 & RW & DNS     & -1.5012 & 0.1333 \\
+DGS2  & 30 & RW & Ridge   & -2.5841 & 0.0098 \\
+DGS2  & 30 & RW & XGBoost & -2.4089 & 0.0160 \\
 \hline
-DGS5  & 1  & RW & DNS     & -2.6397 & 0.0083 & 1725 \\
-DGS5  & 1  & RW & Ridge   & -1.5065 & 0.1319 & 1725 \\
-DGS5  & 1  & RW & XGBoost & -3.8713 & 0.0001 & 1712 \\
-DGS5  & 5  & RW & DNS     & -3.0719 & 0.0021 & 1721 \\
-DGS5  & 5  & RW & Ridge   & -2.4793 & 0.0132 & 1721 \\
-DGS5  & 5  & RW & XGBoost & -2.7304 & 0.0063 & 1708 \\
-DGS5  & 10 & RW & DNS     & -3.1508 & 0.0016 & 1716 \\
-DGS5  & 10 & RW & Ridge   & -3.5707 & 0.0004 & 1716 \\
-DGS5  & 10 & RW & XGBoost & -2.6888 & 0.0072 & 1703 \\
-DGS5  & 30 & RW & DNS     & -3.1172 & 0.0018 & 1696 \\
-DGS5  & 30 & RW & Ridge   & -3.2213 & 0.0013 & 1696 \\
-DGS5  & 30 & RW & XGBoost & -2.7758 & 0.0055 & 1683 \\
+DGS5  & 1  & RW & DNS     & -2.6397 & 0.0083 \\
+DGS5  & 1  & RW & Ridge   & -1.5065 & 0.1319 \\
+DGS5  & 1  & RW & XGBoost & -3.8713 & 0.0001 \\
+DGS5  & 5  & RW & DNS     & -3.0719 & 0.0021 \\
+DGS5  & 5  & RW & Ridge   & -2.4793 & 0.0132 \\
+DGS5  & 5  & RW & XGBoost & -2.7304 & 0.0063 \\
+DGS5  & 10 & RW & DNS     & -3.1508 & 0.0016 \\
+DGS5  & 10 & RW & Ridge   & -3.5707 & 0.0004 \\
+DGS5  & 10 & RW & XGBoost & -2.6888 & 0.0072 \\
+DGS5  & 30 & RW & DNS     & -3.1172 & 0.0018 \\
+DGS5  & 30 & RW & Ridge   & -3.2213 & 0.0013 \\
+DGS5  & 30 & RW & XGBoost & -2.7758 & 0.0055 \\
 \hline\hline
 \end{tabular}
 \begin{flushleft}
 \footnotesize
-The table reports Diebold--Mariano test statistics and corresponding p-values based on squared forecast errors. The Random Walk (RW) serves as the benchmark model in all comparisons. Negative test statistics indicate superior predictive accuracy of the Random Walk. Variance estimates are adjusted for the forecast horizon. $N$ denotes the number of out-of-sample observations used in each test.
+\centering
+Model 1 is the benchmark model (Random Walk), Model 2 is the competing model.
 \end{flushleft}
 \end{table}
 
+\section{Robustness Check Results}
+Here, the detailed results of the robustness checks described in Chapter 6 are presented.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption[RMSE robustness check]{RMSE Robustness Check Results}
+\label{tab:rmse_robustness_appendix}
+\renewcommand{\arraystretch}{1.15}
+
+\begin{tabular}{l r l rrr}
+\toprule
+Maturity & Horizon $h$ & Model & RMSE (H1) & RMSE (H2) \\
+DGS10 & 1  & DNS     & 0.050736 & 0.066377 \\
+DGS10 & 1  & RW      & 0.050602 & 0.066327 \\
+DGS10 & 1  & Ridge   & 0.050871 & 0.066373 \\
+DGS10 & 1  & XGBoost & 0.052475 & 0.070028 \\
+\midrule
+DGS10 & 5  & DNS     & 0.109957 & 0.143123 \\
+DGS10 & 5  & RW      & 0.108870 & 0.142527 \\
+DGS10 & 5  & Ridge   & 0.109917 & 0.142778 \\
+DGS10 & 5  & XGBoost & 0.113500 & 0.156819 \\
+\midrule
+DGS10 & 10 & DNS     & 0.158577 & 0.201917 \\
+DGS10 & 10 & RW      & 0.155200 & 0.200177 \\
+DGS10 & 10 & Ridge   & 0.158524 & 0.202158 \\
+DGS10 & 10 & XGBoost & 0.155770 & 0.225606 \\
+\midrule
+DGS10 & 30 & DNS     & 0.314374 & 0.359680 \\
+DGS10 & 30 & RW      & 0.301530 & 0.350572 \\
+DGS10 & 30 & Ridge   & 0.324403	 & 0.365707 \\
+DGS10 & 30 & XGBoost & 0.298247 & 0.459757 \\
+\midrule
+
+DGS2  & 1  & DNS     & 0.042503 & 0.075561 \\
+DGS2  & 1  & RW      & 0.042448 & 0.075481 \\
+DGS2  & 1  & Ridge   & 0.042505 & 0.075737 \\
+DGS2  & 1  & XGBoost & 0.043788 & 0.082396 \\
+\midrule
+DGS2  & 5  & DNS     & 0.096985 & 0.159349 \\
+DGS2  & 5  & RW      & 0.096677 & 0.158475 \\
+DGS2  & 5  & Ridge   & 0.097701 & 0.159251 \\
+DGS2  & 5  & XGBoost & 0.094937 & 0.180660 \\
+\midrule
+DGS2  & 10 & DNS     & 0.149767 & 0.223717 \\
+DGS2  & 10 & RW      & 0.148454 & 0.221508 \\
+DGS2  & 10 & Ridge   & 0.150867 & 0.223640 \\
+DGS2  & 10 & XGBoost & 0.144419 & 0.261216 \\
+\midrule
+DGS2  & 30 & DNS     & 0.331229 & 0.397159 \\
+DGS2  & 30 & RW      & 0.324081 & 0.387259 \\
+DGS2  & 30 & Ridge   & 0.336431 & 0.398366 \\
+DGS2  & 30 & XGBoost & 0.285386 & 0.508493 \\
+\midrule
+
+DGS5  & 1  & DNS     & 0.048506 & 0.074190 \\
+DGS5  & 1  & RW      & 0.048337 & 0.074138 \\
+DGS5  & 1  & Ridge   & 0.048622 & 0.074319 \\
+DGS5  & 1  & XGBoost & 0.049339 & 0.078462 \\
+\midrule
+DGS5  & 5  & DNS     & 0.105208 & 0.159511 \\
+DGS5  & 5  & RW      & 0.103992 & 0.158836 \\
+DGS5  & 5  & Ridge   & 0.105157 & 0.159465 \\
+DGS5  & 5  & XGBoost & 0.104864 & 0.170167 \\
+\midrule
+DGS5  & 10 & DNS     & 0.155970 & 0.223605 \\
+DGS5  & 10 & RW      & 0.151798 & 0.221626 \\
+DGS5  & 10 & Ridge   & 0.155704 & 0.224068 \\
+DGS5  & 10 & XGBoost & 0.150836 & 0.250411 \\
+\midrule
+DGS5  & 30 & DNS     & 0.325624 & 0.393826 \\
+DGS5  & 30 & RW      & 0.308619 & 0.383859 \\
+DGS5  & 30 & Ridge   & 0.329034 & 0.395040 \\
+DGS5  & 30 & XGBoost & 0.292430 & 0.506521 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\begin{table}[H]
+\centering
+\begin{threeparttable}
+\caption[Risk-reduction robustness check]{Risk-reduction Robustness Check Results}
+\label{tab:risk_reduction_robustness_compact}
+
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{llrrr}
+\toprule
+Horizon & Strategy & $\Delta$ Std & $\Delta$ Max DD & $\Delta$ Final Wealth \\
+\midrule
+
+\multicolumn{5}{l}{\textit{First subsample: (01/2019--06/2022)}} \\
+\midrule
+\multirow{3}{*}{1}
+& DNS     & -0.00087 & $+8.03$pp  & $+0.0379$ \\
+& Ridge   & -0.00087 & $+8.03$pp  & $+0.0379$ \\
+& XGBoost & -0.00084 & $+8.02$pp  & $+0.0479$ \\
+\midrule
+\multirow{3}{*}{5}
+& DNS     & -0.00255 & $+10.00$pp & $+0.0255$ \\
+& Ridge   & -0.00261 & $+10.00$pp & $+0.0188$ \\
+& XGBoost & -0.00230 & $+8.48$pp  & $+0.0191$ \\
+\midrule
+\multirow{3}{*}{10}
+& DNS     & -0.00248 & $+6.60$pp  & $+0.0395$ \\
+& Ridge   & -0.00240 & $+5.62$pp  & $+0.0349$ \\
+& XGBoost & -0.00200 & $+6.90$pp  & $+0.0414$ \\
+\midrule
+\multirow{3}{*}{30}
+& DNS     & -0.00594 & $+3.25$pp  & $-0.0360$ \\
+& Ridge   & -0.00584 & $+3.25$pp  & $-0.0330$ \\
+& XGBoost & -0.00611 & $+5.20$pp  & $-0.0241$ \\
+
+\midrule
+\multicolumn{5}{l}{\textit{Second subsample: (06/2022--11/2025)}} \\
+\midrule
+\multirow{3}{*}{1}
+& DNS     & -0.00117 & $+13.14$pp & $+0.1429$ \\
+& Ridge   & -0.00118 & $+14.46$pp & $+0.1517$ \\
+& XGBoost & -0.00123 & $+11.31$pp & $+0.0977$ \\
+\midrule
+\multirow{3}{*}{5}
+& DNS     & -0.00235 & $+0.76$pp  & $-0.0133$ \\
+& Ridge   & -0.00249 & $+3.17$pp  & $+0.0113$ \\
+& XGBoost & -0.00189 & $+2.16$pp  & $+0.0062$ \\
+\midrule
+\multirow{3}{*}{10}
+& DNS     & -0.00243 & $+7.88$pp  & $+0.1333$ \\
+& Ridge   & -0.00243 & $+7.83$pp  & $+0.1328$ \\
+& XGBoost & -0.00207 & $-0.18$pp  & $+0.0201$ \\
+\midrule
+\multirow{3}{*}{30}
+& DNS     & -0.00527 & $+8.84$pp  & $+0.0941$ \\
+& Ridge   & -0.00527 & $+8.84$pp  & $+0.0941$ \\
+& XGBoost & -0.00497 & $+8.55$pp  & $+0.0852$ \\
+
+\bottomrule
+\end{tabular}
+\end{threeparttable}
+\caption*{\footnotesize
+$\Delta$ uses the buy-and-hold strategy of the respective subsample as benchmark.
+}
+\end{table}
 
 \end{document}
