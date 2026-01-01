@@ -1,6 +1,6 @@
 # Yield Curve Forecasting
 
-This repository contains the code and materials for a bachelor’s thesis in **quantitative finance / econometrics**.  
+This repository contains the code and materials for a bachelor’s thesis in economics and business administration.
 The project compares **econometric** and **machine-learning** models for **short-horizon U.S. Treasury yield curve forecasting**, evaluating both **statistical accuracy** and **economic value**.
 
 ## Models
