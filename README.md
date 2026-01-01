@@ -26,7 +26,7 @@ models/      # Trained models
 notebooks/   # Analysis notebooks
 
 
-## Setup
+Setup
 
 git clone <repository-url>
 cd <repository-name>
