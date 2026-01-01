@@ -1,3 +1,12 @@
 .venv
 /latex/thesis.tex
 *.code-workspace
+# Generated figures
+graphics/
+2024_all_models.png
+inverted_yield_curve_comparison.png
+normal_yield_curve_comparison.png
+
+# Notebooks & backups
+vizuals.ipynb
+thesis_backup.txt
