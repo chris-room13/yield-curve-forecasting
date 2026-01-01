@@ -10,3 +10,7 @@ normal_yield_curve_comparision.png
 # Notebooks & backups
 vizuals.ipynb
 thesis_backup.txt
+
+# Generated outputs in notebooks
+notebooks/*.png
+notebooks/*.csv
