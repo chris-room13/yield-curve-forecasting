@@ -24,13 +24,15 @@ Daily U.S. Treasury yields (1Y, 2Y, 5Y, 10Y) from FRED are used with an expandin
 data/        # Yield data
 models/      # Trained models
 notebooks/   # Analysis notebooks
+```
 
+## Setup
 
-Setup
-
+```text
 git clone https://github.com/chris-room13/yield-curve-forecasting
 cd <youre-saved-location>
 python -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-Now you can run the notebooks in order
+```
+Now you can run the notebooks in order. Depending on your setup it can take up to 10 hours for Hyperparameter tuning and model training to be completed. Therefore my training results are saved in the /models folder.
