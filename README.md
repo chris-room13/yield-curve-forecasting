@@ -28,9 +28,9 @@ notebooks/   # Analysis notebooks
 
 Setup
 
-git clone <repository-url>
-cd <repository-name>
+git clone https://github.com/chris-room13/yield-curve-forecasting
+cd <youre-saved-location>
 python -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-jupyter notebook
+Now you can run the notebooks in order
