@@ -15,15 +15,33 @@ The project compares **econometric** and **machine-learning** models for **short
   - Diebold–Mariano tests
 - **Economic value**
   - Long–short trading strategy
-  - Risk-reduction (timing) strategy
+  - Risk-reduction simulation
 
-Daily U.S. Treasury yields (1Y, 2Y, 5Y, 10Y) from FRED are used with an expanding-window out-of-sample evaluation.
+Daily U.S. constant maturity Treasury yields 2Y, 5Y, 10Y from FRED are used with an expanding-window out-of-sample evaluation.
 
 ## Repository Structure
 ```text
-data/        # Yield data
-models/      # Trained models
-notebooks/   # Analysis notebooks
+.
+├── data/                         # Raw U.S. Treasury yield data (FRED)
+│   ├── DGS1.csv                  # 1-year yield (short rate)
+│   ├── DGS2.csv                  # 2-year yield
+│   ├── DGS5.csv                  # 5-year yield
+│   └── DGS10.csv                 # 10-year yield
+│
+├── models/                       # Serialized model outputs (.pkl)
+│   ├── RW.pkl                    # Random Walk benchmark (predictions & actuals)
+│   ├── DNS.pkl                   # Diebold–Li model outputs
+│   ├── Ridge.pkl                 # Ridge regression outputs
+│   └── XGBoost.pkl               # XGBoost outputs
+│
+├── notebooks/                    # Jupyter notebooks (analysis workflow)
+│   ├── 01_models.ipynb           # Load and merge data, set up and train RW, DNS, Ridge and XGBoost, produce OOS forecasts
+│   ├── 02_forecast_eval.ipynb    # Use results from 01 to create RMSE result table, DM Test table and Robustness Test for RMSE results
+│   └── 03_economic_eval.ipynb    # Use results from 01 to perform long-short trading strategy and risk-reduction simulation, perform robustness check on risk-reduction result
+│
+├── README.md                     # Project overview and replication guide
+└── requirements.txt              # Python dependencies
+
 ```
 
 ## Setup
