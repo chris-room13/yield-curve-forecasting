@@ -48,10 +48,10 @@ Daily U.S. constant maturity Treasury yields 2Y, 5Y, 10Y from FRED are used with
 
 ```text
 git clone https://github.com/chris-room13/yield-curve-forecasting
-cd <youre-saved-location> 
+cd <your-saved-location> 
 python -m venv venv #or python3 -m venv venv if you have another version
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 select the venv as jupyter kernel
 ```
-Now you can run the notebooks in order. Depending on your setup it can take up to 10 hours for Hyperparameter tuning and model training to be completed. Therefore my training results are saved in the /models folder.
+Now you can run the individual Notebooks. Make sure to run cells **in order** to avoid having wrong variables or dependencies. Depending on your setup it can take up to 10 hours for Hyperparameter tuning and model training to be completed. Therefore my training results are saved in the /models folder.
